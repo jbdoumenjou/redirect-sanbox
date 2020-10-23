@@ -1,0 +1,36 @@
+version: '3.7'
+
+services:
+  traefik:
+    image: traefik:v2.3.2
+    ports:
+      - '80:80'
+      - '8080:8080'
+      - '443:443'
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./conf/:/etc/traefik/conf/
+      - ./certs/:/etc/traefik/certs/
+    command:
+      - --log.level=DEBUG
+      - --api.insecure
+      - --entrypoints.web.address=:80
+      - --entrypoints.web.http.redirections.entryPoint.to=websecure
+      - --entrypoints.web.http.redirections.entryPoint.scheme=https
+      - --entrypoints.websecure.address=:443
+      - --providers.docker.watch=false
+      - --providers.file.directory=/etc/traefik/conf/
+    labels:
+      traefik.enable: false
+
+  whoami:
+    image: traefik/whoami
+    ports:
+    - "8000:80"
+    labels:
+      traefik.enable: true
+      traefik.http.routers.whoami.rule: Host(`whoami`)
+      traefik.http.routers.whoami.entrypoints: websecure
+      traefik.http.routers.whoami.tls: true
+      traefik.http.routers.whoami.service: whoami
+      traefik.http.services.whoami.loadbalancer.server.port: 80
